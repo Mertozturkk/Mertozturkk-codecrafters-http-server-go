@@ -65,7 +65,9 @@ func RequestPathSplit(receiveMessage string, conn net.Conn) {
 		fmt.Println("message", message)
 		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
 	} else {
-		conn.Write([]byte("HTTP/1.1 200 OK" + "\r\n\r\n"))
+		fmt.Println("404 Not Found")
+		conn.Write([]byte("HTTP/1.1 404 Not Found" + "\r\n\r\n"))
+
 	}
 
 }
