@@ -46,14 +46,26 @@ func HandleFunction(conn net.Conn) {
 		if errors.Is(err, io.EOF) {
 			return
 		}
-		if !strings.HasPrefix(receiveMessage, "GET / HTTP/1.1") {
-			conn.Write([]byte("HTTP/1.1 404 Not Found" + "\r\n\r\n"))
-			fmt.Println("Bad Request")
-			return
 
-		}
-
-		conn.Write([]byte("HTTP/1.1 200 OK" + "\r\n\r\n"))
+		RequestPathSplit(receiveMessage, conn)
 
 	}
+}
+
+func RequestPathSplit(receiveMessage string, conn net.Conn) {
+	splitedMessage := strings.Split(receiveMessage, "\r\n")[0]
+	fmt.Println("splitedMessage", splitedMessage)
+	targetPath := strings.Split(splitedMessage, " ")[1]
+	fmt.Println("targetPath", targetPath)
+
+	if targetPath == "/" {
+		conn.Write([]byte("HTTP/1.1 404 Not Found" + "\r\n\r\n"))
+	} else if strings.HasPrefix(targetPath, "/echo") {
+		message := strings.Split(targetPath, "/")[2]
+		fmt.Println("message", message)
+		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
+	} else {
+		conn.Write([]byte("HTTP/1.1 200 OK" + "\r\n\r\n"))
+	}
+
 }
