@@ -59,7 +59,7 @@ func RequestPathSplit(receiveMessage string, conn net.Conn) {
 	fmt.Println("targetPath", targetPath)
 
 	if targetPath == "/" {
-		conn.Write([]byte("HTTP/1.1 404 Not Found" + "\r\n\r\n"))
+		conn.Write([]byte("HTTP/1.1 200 OK" + "\r\n\r\n"))
 	} else if strings.HasPrefix(targetPath, "/echo") {
 		message := strings.Split(targetPath, "/")[2]
 		fmt.Println("message", message)
