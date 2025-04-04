@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	// Uncomment this block to pass the first stage
 	"net"
@@ -39,12 +40,19 @@ func HandleFunction(conn net.Conn) {
 		if err != nil {
 			return
 		}
-		// fmt.Println("Received int", n)
+		//fmt.Println("Received int", n)
 		receiveMessage := string(buf[:n])
 		log.Printf("Received Data %s", receiveMessage)
 		if errors.Is(err, io.EOF) {
 			return
 		}
+		if !strings.HasPrefix(receiveMessage, "GET / HTTP/1.1") {
+			conn.Write([]byte("HTTP/1.1 404 Not Found" + "\r\n\r\n"))
+			fmt.Println("Bad Request")
+			return
+
+		}
+
 		conn.Write([]byte("HTTP/1.1 200 OK" + "\r\n\r\n"))
 
 	}
