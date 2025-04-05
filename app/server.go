@@ -63,37 +63,25 @@ func HandleFunction(conn net.Conn) {
 			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
 		} else if strings.HasPrefix(req.Path, "/user-agent") {
 			userAgent := req.Headers["User-Agent"]
-			fmt.Println("User-Agent>>>>>>>>>>>>>>>>:", userAgent)
 			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)))
+		} else if strings.HasPrefix(req.Path, "/files") {
+			fileName := strings.Split(req.Path, "/")[2]
+			fmt.Println("fileName", fileName)
+			directory := os.Args[2]
+			content, err := ReadFileFromFileName(directory, fileName)
+			if err != nil {
+				fmt.Println("Error reading file:", err)
+				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+				return
+			}
+			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)))
 		} else {
 			fmt.Println("404 Not Found")
 			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 		}
 
-		// RequestPathSplit(receiveMessage, conn)
-
 	}
 }
-
-// func RequestPathSplit(receiveMessage string, conn net.Conn) {
-// 	splitedMessage := strings.Split(receiveMessage, "\r\n")[0]
-// 	fmt.Println("splitedMessage", splitedMessage)
-// 	targetPath := strings.Split(splitedMessage, " ")[1]
-// 	fmt.Println("targetPath", targetPath)
-
-// 	if targetPath == "/" {
-// 		conn.Write([]byte("HTTP/1.1 200 OK" + "\r\n\r\n"))
-// 	} else if strings.HasPrefix(targetPath, "/echo") {
-// 		message := strings.Split(targetPath, "/")[2]
-// 		fmt.Println("message", message)
-// 		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
-// 	} else {
-// 		fmt.Println("404 Not Found")
-// 		conn.Write([]byte("HTTP/1.1 404 Not Found" + "\r\n\r\n"))
-
-// 	}
-
-// }
 
 type Request struct {
 	Method  string
@@ -132,4 +120,20 @@ func NewRequest(b []byte) (*Request, error) {
 	}
 
 	return request, nil
+}
+
+func ReadFileFromFileName(directory, fileName string) ([]byte, error) {
+	filePath := fmt.Sprintf("%s/%s", directory, fileName)
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
 }
