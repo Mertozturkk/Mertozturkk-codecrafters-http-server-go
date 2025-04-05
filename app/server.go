@@ -66,15 +66,21 @@ func HandleFunction(conn net.Conn) {
 		if req.Path == "/" {
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		} else if strings.HasPrefix(req.Path, "/echo") {
+			header := GetHeaderValue(req.Headers, "Accept-Encoding")
+			if header == "gzip" {
+				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\nContent-Length: 0\r\n\r\n"))
+			} else {
+				conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 0\r\n\r\n"))
+			}
 			message := strings.Split(req.Path, "/")[2]
-			fmt.Println("message", message)
+
 			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)))
 		} else if strings.HasPrefix(req.Path, "/user-agent") {
 			userAgent := req.Headers["User-Agent"]
 			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)))
 		} else if strings.HasPrefix(req.Path, "/files") {
 			fileName := strings.Split(req.Path, "/")[2]
-			fmt.Println("fileName", fileName)
+
 			directory := os.Args[2]
 			content, err := ReadFileFromFileName(directory, fileName)
 			if err != nil {
@@ -91,6 +97,12 @@ func HandleFunction(conn net.Conn) {
 	}
 }
 
+type Response struct {
+	Status  string
+	Headers map[string]string
+	Body    string
+}
+
 type Request struct {
 	Method  string
 	Path    string
@@ -99,7 +111,7 @@ type Request struct {
 }
 
 func NewRequest(b []byte) (*Request, error) {
-	fmt.Println("IN NEW REQUEST")
+
 	request := &Request{
 		Headers: make(map[string]string),
 	}
@@ -126,9 +138,11 @@ func NewRequest(b []byte) (*Request, error) {
 			return nil, errors.New("invalid header")
 		}
 		request.Headers[header[0]] = header[1]
+
 	}
+	fmt.Println("request.Headers", request.Headers)
+
 	request.Body = strings.Join(lines[len(lines)-1:], "\r\n")
-	fmt.Println("request.Body", request.Body)
 	return request, nil
 }
 
@@ -161,4 +175,11 @@ func WriteFile(directory, fileName, content string) {
 	}
 	fmt.Printf("File %s created successfully\n", filepath)
 
+}
+
+func GetHeaderValue(headers map[string]string, key string) string {
+	if value, ok := headers[key]; ok {
+		return value
+	}
+	return ""
 }
