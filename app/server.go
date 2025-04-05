@@ -66,7 +66,8 @@ func HandleFunction(conn net.Conn) {
 		if req.Path == "/" {
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		} else if strings.HasPrefix(req.Path, "/echo") {
-			header := GetHeaderValue(req.Headers, "Accept-Encoding")
+			header := GetHeaderValue(req.Headers, "Accept-Encoding", []string{"gzip"})
+			fmt.Println("HHHHEEADER", header)
 			message := strings.Split(req.Path, "/")[2]
 
 			if header == "gzip" {
@@ -179,9 +180,13 @@ func WriteFile(directory, fileName, content string) {
 
 }
 
-func GetHeaderValue(headers map[string]string, key string) string {
+func GetHeaderValue(headers map[string]string, key string, acceptedValues []string) string {
 	if value, ok := headers[key]; ok {
-		return value
+		for _, accepted := range acceptedValues {
+			if value == accepted {
+				return value
+			}
+		}
 	}
 	return ""
 }
