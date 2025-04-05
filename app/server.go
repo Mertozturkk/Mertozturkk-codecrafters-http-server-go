@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"path/filepath"
 	"strings"
 
 	// Uncomment this block to pass the first stage
@@ -41,8 +42,6 @@ func HandleFunction(conn net.Conn) {
 			return
 		}
 		//fmt.Println("Received int", n)
-		receiveMessage := string(buf[:n])
-		log.Printf("Received Data %s", receiveMessage)
 		if errors.Is(err, io.EOF) {
 			return
 		}
@@ -53,7 +52,16 @@ func HandleFunction(conn net.Conn) {
 			conn.Write([]byte("HTTP/1.1 400 Bad Request\r\n\r\n"))
 			return
 		}
-		fmt.Println("REEEQUEST:", req)
+		if req.Method == "POST" {
+			if strings.HasPrefix(req.Path, "/files") {
+				directory := os.Args[2]
+				fileName := strings.Split(req.Path, "/")[2]
+				content := req.Body
+				WriteFile(directory, fileName, content)
+				conn.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
+			}
+
+		}
 
 		if req.Path == "/" {
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
@@ -91,6 +99,7 @@ type Request struct {
 }
 
 func NewRequest(b []byte) (*Request, error) {
+	fmt.Println("IN NEW REQUEST")
 	request := &Request{
 		Headers: make(map[string]string),
 	}
@@ -118,7 +127,8 @@ func NewRequest(b []byte) (*Request, error) {
 		}
 		request.Headers[header[0]] = header[1]
 	}
-
+	request.Body = strings.Join(lines[len(lines)-1:], "\r\n")
+	fmt.Println("request.Body", request.Body)
 	return request, nil
 }
 
@@ -136,4 +146,19 @@ func ReadFileFromFileName(directory, fileName string) ([]byte, error) {
 	}
 
 	return content, nil
+}
+
+func WriteFile(directory, fileName, content string) {
+	filepath := filepath.Join(directory, fileName)
+	file, err := os.Create(filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	_, err = file.WriteString(content)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("File %s created successfully\n", filepath)
+
 }
